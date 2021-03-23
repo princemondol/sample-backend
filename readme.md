@@ -1,0 +1,1 @@
+To free up ports : taskkill /f /im node.exe
