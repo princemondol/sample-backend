@@ -3,11 +3,14 @@ import { sendmail } from '../mailer';
 import { UserSchema } from '../model/userModel';
 import bcrypt from 'bcrypt';
 import { v4 as uuidHash } from 'uuid';
+import jwt from 'jsonwebtoken';
+import 'dotenv/config';
+
 
 const User = mongoose.model("user", UserSchema);
 
 export const addNewUser = async (req, res) => {
-    
+    console.log(req.body.password);
     req.body.password = await hashPass(req.body.password);
     
     let newUser = new User(req.body);
@@ -84,14 +87,31 @@ export const authenticate = (req, res) => {
         if (user === null) {
             res.send("Erorr : Invalid email, user does not exist");
         } else {
-            let validUser = await bcrypt.compare(req.body.password, user.password);
-            if (validUser) {
-                let successMsg = user.confirm === "1" ?  "Login Success: you will be redirected to home" : "Please confirm your email"; 
-                res.send(successMsg);
+            let passwordMatch = await bcrypt.compare(req.body.password, user.password);
+            if (passwordMatch) {
+                if(user.confirm === "1") {
+                    // Generate jwt 
+                    let token = jwt.sign({ userid: user._id }, process.env.MY_PRIVATE_KEY);
+                    res.status(200).json({ access_token : token });
+                }else {
+                    res.status(401).json({message : "Unauthorized, please confirm your email"});
+                }
+                
+
             } else {
                 res.send("Login error: please check your password")
             }
         }
     })
+
+}
+
+export const loginRequired = (req, res, next) => {
+
+    if(req.authUser) {
+        next();
+    } else {
+        res.status(401).json({message : "Unauthorized user, please login to see this data"});
+    }
 
 }

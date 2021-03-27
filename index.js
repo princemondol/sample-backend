@@ -4,7 +4,8 @@ import contactRoutes from './src/routes/contactRoutes';
 // import userRoutes from './src/routes/userRoutes';
 import {sendmail} from './src/mailer';
 import { userRoutes } from './src/routes/userRoutes';
-
+import jwt from 'jsonwebtoken';
+import 'dotenv/config';
 
 const app = express();
 const PORT  = 4000;
@@ -17,12 +18,34 @@ const loggerMiddleware = (req, res, next) => {
     next();
 }
 
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({extended: false}));
 app.use(express.json());
 app.use(loggerMiddleware);
 
+const jwtParser = (req, res, next) => {
+    
+    if(req.headers && req.headers.authorization && req.headers.authorization.split(' ')[0] === "Bearer") {
+        jwt.verify(req.headers.authorization.split(' ')[1], process.env.MY_PRIVATE_KEY, (err, decoded) => {
+            if(err) {
+                req.authUser = undefined;
+            }
+
+            req.authUser = decoded;
+            console.log(req.authUser);
+            next();
+        });
+    }else {
+        req.authUser = undefined;
+        next();
+    }
+}
+
+app.use(jwtParser)
+
 contactRoutes(app)
 userRoutes(app);
+
+
 
 app.get('/', (req,res) => {
     res.send(`Node and express server running on port ${PORT}`)

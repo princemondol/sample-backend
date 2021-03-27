@@ -3,13 +3,14 @@ import {addNewContact,
         getOneContact,
         updateOneContact, 
         deleteContact } from "../controller/contactController";
+import { loginRequired } from "../controller/userController";
 
       
 
 
 const routes = (app) => {
     app.route('/contacts')
-        .get(getAllContacts)
+        .get(loginRequired,getAllContacts)
         .post(addNewContact);
 
     app.route('/contacts/:contactID')
